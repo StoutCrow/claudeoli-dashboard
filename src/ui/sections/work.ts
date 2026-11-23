@@ -31,7 +31,8 @@ export function renderWork(box: HTMLElement, ctx: SectionCtx) {
 		note: p.openWork,
 	})).filter((i) => i.state !== "done");
 	const board = items(v.work, (r, t) => ({
-		pc: pcPart(md(cell(r, t, "Owner"))),
+		// Only "name@pc" owners name a PC; "owner (user)" is a person.
+		pc: md(cell(r, t, "Owner")).includes("@") ? pcPart(md(cell(r, t, "Owner"))) : "",
 		project: md(cell(r, t, "Project")),
 		owner: md(cell(r, t, "Owner")),
 		state: md(cell(r, t, "State")),

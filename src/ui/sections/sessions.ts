@@ -62,7 +62,6 @@ export function renderSessions(box: HTMLElement, ctx: SectionCtx) {
 				detail: `${cell(r, log, "Ended")} · ${md(cell(r, log, "Why it ended"))}${logged ? "" : " · no handoff Log row"}`,
 				muted: logged,
 				now: ctx.now,
-				actions: (a) => openButton(a, ctx, `${p.sessionsDir.replace(/\/?$/, "/")}${pc}.md`),
 			});
 		}
 	}

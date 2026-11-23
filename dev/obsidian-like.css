@@ -1,0 +1,190 @@
+/* Enough of Obsidian's default theme (variables and base controls) for the harness to look like the app. */
+body {
+	--font-ui-smaller: 12px;
+	--font-ui-small: 13px;
+	--font-ui-medium: 15px;
+	--h3-size: 1.25em;
+	--font-normal: 400;
+	--font-semibold: 600;
+	--layer-tooltip: 70;
+	--shadow-s: 0 1px 2px rgba(0, 0, 0, 0.08), 0 3.4px 6.7px rgba(0, 0, 0, 0.1);
+	margin: 0;
+	font-family: -apple-system, "Segoe UI", Inter, Ubuntu, sans-serif;
+	font-size: 16px;
+	background: var(--background-secondary);
+	color: var(--text-normal);
+}
+body.theme-light {
+	--background-primary: #ffffff;
+	--background-secondary: #f6f6f6;
+	--background-modifier-border: #e0e0e0;
+	--background-modifier-border-hover: #ececec;
+	--background-modifier-hover: rgba(0, 0, 0, 0.067);
+	--background-modifier-active-hover: rgba(138, 92, 245, 0.1);
+	--interactive-normal: #ffffff;
+	--interactive-hover: #f2f2f2;
+	--interactive-accent: #8a5cf5;
+	--interactive-accent-hover: #7c4ff0;
+	--text-normal: #222222;
+	--text-muted: #5c5c5c;
+	--text-faint: #ababab;
+	--text-on-accent: #ffffff;
+	--text-error: #e93147;
+	--color-red: #e93147;
+	--color-orange: #ec7500;
+	--color-yellow: #e0ac00;
+	--color-green: #08b94e;
+	--color-cyan: #00bfbc;
+	--color-blue: #086ddd;
+	--color-purple: #7852ee;
+	--color-pink: #d53984;
+}
+body.theme-dark {
+	--background-primary: #1e1e1e;
+	--background-secondary: #262626;
+	--background-modifier-border: #363636;
+	--background-modifier-border-hover: #2e2e2e;
+	--background-modifier-hover: rgba(255, 255, 255, 0.075);
+	--background-modifier-active-hover: rgba(168, 130, 255, 0.15);
+	--interactive-normal: #363636;
+	--interactive-hover: #3f3f3f;
+	--interactive-accent: #8a5cf5;
+	--interactive-accent-hover: #a68af9;
+	--text-normal: #dadada;
+	--text-muted: #b3b3b3;
+	--text-faint: #666666;
+	--text-on-accent: #ffffff;
+	--text-error: #fb464c;
+	--color-red: #fb464c;
+	--color-orange: #e9973f;
+	--color-yellow: #e0de71;
+	--color-green: #44cf6e;
+	--color-cyan: #53dfdd;
+	--color-blue: #027aff;
+	--color-purple: #a882ff;
+	--color-pink: #fa99cd;
+}
+.workspace {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+}
+.workspace-tab-header {
+	padding: 6px 14px;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.workspace-leaf {
+	flex: 1;
+	min-height: 0;
+	max-width: 100%;
+	background: var(--background-primary);
+}
+.workspace-leaf-content,
+.view-content {
+	height: 100%;
+}
+button,
+select,
+input,
+textarea {
+	font: inherit;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+button {
+	padding: 4px 12px;
+	border: none;
+	border-radius: 4px;
+	background: var(--interactive-normal);
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08), inset 0 0 0 1px var(--background-modifier-border);
+	cursor: pointer;
+}
+button:hover {
+	background: var(--interactive-hover);
+}
+button.mod-cta {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	box-shadow: none;
+}
+button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+select.dropdown {
+	padding: 0 28px 0 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--interactive-normal);
+}
+input[type="text"],
+input[type="url"],
+input[type="password"],
+textarea {
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+}
+.setting-item {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 12px 0;
+	border-top: 1px solid var(--background-modifier-border);
+}
+.setting-item-heading {
+	font-weight: var(--font-semibold);
+	border-top: none;
+	padding-top: 24px;
+}
+.setting-item-info {
+	flex: 1;
+}
+.setting-item-description {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	padding-top: 4px;
+}
+.modal-container {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 50;
+}
+.modal-bg {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.4);
+}
+.modal {
+	position: relative;
+	width: min(560px, 92vw);
+	padding: 20px 24px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
+}
+.modal-title {
+	font-size: 1.2em;
+	font-weight: var(--font-semibold);
+	margin-bottom: 8px;
+}
+.notice-container {
+	position: fixed;
+	top: 12px;
+	right: 12px;
+	z-index: 60;
+}
+.notice {
+	margin-bottom: 8px;
+	padding: 10px 14px;
+	border-radius: 6px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+}
