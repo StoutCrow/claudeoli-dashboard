@@ -447,7 +447,7 @@ Steps:
 
 Work in a separate worktree of the bus repo. Don't switch branches in its main checkout.
 1. Claim the bus files first: add the claim to the Coordination board's "Agent bus" row notes, since its owner is someone else.
-2. Run `git -C ..\claudeoli worktree add ..\claudeoli-bus -b feature/dashboard-bus main`.
+2. Run `git -C ..\..\claudeoli worktree add ..\claudeoli-bus -b feature/dashboard-bus main`.
 3. In the new worktree, run `npm ci` with `C:\Program Files\nodejs\node.exe` (Node 26).
 4. Run the tests with `npm test`. Expected: 74 pass before any change.
 
