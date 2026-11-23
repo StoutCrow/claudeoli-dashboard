@@ -9,7 +9,8 @@ const RULES = [
 	[/\b(?:innerHTML|outerHTML)\b/, "innerHTML/outerHTML (build elements instead)"],
 	[/(?<![.\w])fetch\(/, "fetch() (use requestUrl)"],
 	[/\b(?:window|document)\.addEventListener\(/, "global listener (use registerDomEvent)"],
-	[/(?<![.\w])(?:window\.)?setInterval\(/, "setInterval (use registerInterval)"],
+	// Allowed only inside registerInterval(…), which clears it when the view or plugin unloads.
+	[/^(?!.*registerInterval\().*(?<![.\w])(?:window\.)?setInterval\(/, "setInterval (use registerInterval)"],
 	[/\bdetachLeavesOfType\(/, "detaching leaves (never in onunload)"],
 ];
 // One-shot timers are allowed only where they are tracked and cleared.
