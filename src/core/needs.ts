@@ -1,6 +1,8 @@
 // "Needs you": everything waiting on the owner, with the action beside it. Pure.
 import { cell, rowKey, type Row, type Table } from "./tables.ts";
 import type { VaultModel } from "./vault.ts";
+import { handoffState, type LiveState } from "./live.ts";
+import { OWNER_ADDRESS, PROTOCOL_V, pcOf, type BusMessage } from "./protocol.ts";
 
 export type NeedsKind = "handoff" | "ask" | "claim" | "setup" | "board-work" | "board-message";
 
@@ -46,4 +48,25 @@ export function needsFromVault(v: VaultModel, ownerName: string): NeedsItem[] {
 		out.push({ kind: "board-message", source: "vault", title: plain(cell(r, t, "About")), detail: cell(r, t, "Message"), ref: rowKey(r), action: "board-answer", row: r });
 	}
 	return out;
+}
+
+/** Live items: pending handoffs, asks to the owner with no answer in their thread, claims past expiry. */
+export function needsFromLive(s: LiveState, now: number): NeedsItem[] {
+	const out: NeedsItem[] = [];
+	for (const m of s.messages) {
+		if (m.kind === "handoff" && handoffState(s, m.id, now) === "pending") {
+			out.push({ kind: "handoff", source: "live", title: m.text, detail: `${m.from} to ${m.to}`, ts: m.ts, ref: m.id, action: "approve-refuse" });
+		} else if (m.kind === "ask" && m.to === OWNER_ADDRESS && !s.messages.some((r) => r.from === OWNER_ADDRESS && r.thread === m.thread && r.ts >= m.ts)) {
+			out.push({ kind: "ask", source: "live", title: m.text, detail: m.from, ts: m.ts, ref: m.id, action: "reply" });
+		}
+	}
+	for (const c of s.claims) {
+		if (c.expires < now) out.push({ kind: "claim", source: "live", title: c.key, detail: `${c.holder} · expired`, ts: c.expires, ref: c.key, action: "release" });
+	}
+	return out;
+}
+
+/** Approve and refuse are offered only when the bot on the handoff's PC can check them (protocol v2). */
+export function decisionsEnabled(s: LiveState, h: BusMessage): boolean {
+	return (s.presence[pcOf(h.to)]?.version ?? 0) >= PROTOCOL_V;
 }

@@ -2,7 +2,12 @@ import { ItemView, TFile, type WorkspaceLeaf } from "obsidian";
 import type ClaudeOliPlugin from "../main.ts";
 import type { VaultRead } from "../main.ts";
 import type { ConnState } from "../live/conn.ts";
-import { needsFromVault, type NeedsItem } from "../core/needs.ts";
+import { needsFromLive, needsFromVault, type NeedsItem } from "../core/needs.ts";
+import type { Claim, LiveState } from "../core/live.ts";
+import { serverOf, type BusMessage } from "../core/protocol.ts";
+import { Matrix } from "../live/matrix.ts";
+import { httpObsidian } from "../live/http.ts";
+import { SyncLoop } from "../live/loop.ts";
 import { age, clock } from "../core/time.ts";
 import { button, dropdown, el } from "./common.ts";
 import { renderNeeds } from "./sections/needs.ts";
@@ -29,12 +34,25 @@ const SECTIONS: [SectionId, string][] = [
 	["settings", "Settings"],
 ];
 
+/** Buttons a section can put on a row; each returns the row's `actions` builder, or undefined when not offered. */
+export interface ActionUI {
+	handoff(m: BusMessage): ((box: HTMLElement) => void) | undefined;
+	reply(m: BusMessage): ((box: HTMLElement) => void) | undefined;
+	claim(c: Claim): ((box: HTMLElement) => void) | undefined;
+	need(i: NeedsItem): ((box: HTMLElement) => void) | undefined;
+	newMessage(box: HTMLElement): void;
+}
+
 /** What every section is drawn from. */
 export interface SectionCtx {
 	plugin: ClaudeOliPlugin;
 	vault: VaultRead;
+	/** The agents room, only while the connection is ok (stale data is never shown as live). */
+	live: LiveState | null;
 	conn: ConnState;
 	needs: NeedsItem[];
+	/** Null until the actions exist (and for viewers). */
+	actions: ActionUI | null;
 	now: number;
 	/** Per-view UI state that survives a redraw (filters). */
 	ui: Record<string, string>;
@@ -48,6 +66,8 @@ export class DashboardView extends ItemView {
 	private section: SectionId = "needs";
 	private vault: VaultRead | null = null;
 	private conn: ConnState = { kind: "signed-out" };
+	private live: LiveState | null = null;
+	private loop: SyncLoop | null = null;
 	private ui: Record<string, string> = {};
 	private pendingRead = 0;
 
@@ -82,10 +102,14 @@ export class DashboardView extends ItemView {
 		await this.readVault();
 		// Ages are repainted once a minute while the dashboard is open; nothing runs while it's closed.
 		this.registerInterval(window.setInterval(() => this.render(), 60_000));
+		// On a phone in the background, the long-poll waits until the app is back.
+		this.registerDomEvent(document, "visibilitychange", () => this.loop?.pause(document.visibilityState === "hidden"));
 		this.restartLive();
 	}
 
 	async onClose() {
+		this.loop?.stop();
+		this.loop = null;
 		if (this.pendingRead) window.cancelAnimationFrame(this.pendingRead);
 		this.contentEl.empty();
 	}
@@ -104,9 +128,26 @@ export class DashboardView extends ItemView {
 		this.render();
 	}
 
-	/** Sign-in changed: (re)start the live layer. Filled in by the live layer. */
+	/** Opened, or the sign-in changed: (re)start the one long-poll. */
 	restartLive() {
-		this.conn = this.plugin.secrets() ? { kind: "connecting" } : { kind: "signed-out" };
+		this.loop?.stop();
+		this.loop = null;
+		this.live = null;
+		const s = this.plugin.secrets();
+		this.conn = s ? { kind: "connecting" } : { kind: "signed-out" };
+		if (s) {
+			this.loop = new SyncLoop({
+				matrix: new Matrix(httpObsidian, s.homeserver, s.token),
+				roomId: s.roomId,
+				ctx: { ownerId: s.userId, serverName: serverOf(s.userId) },
+				onChange: (state, conn) => {
+					this.live = state;
+					this.conn = conn;
+					this.render();
+				},
+			});
+			this.loop.start();
+		}
 		this.render();
 	}
 
@@ -115,8 +156,10 @@ export class DashboardView extends ItemView {
 		return {
 			plugin: this.plugin,
 			vault: this.vault,
+			live: this.conn.kind === "ok" ? this.live : null,
 			conn: this.conn,
-			needs: needsFromVault(this.vault.model, this.plugin.settings.ownerName),
+			needs: [...(this.conn.kind === "ok" && this.live ? needsFromLive(this.live, Date.now()) : []), ...needsFromVault(this.vault.model, this.plugin.settings.ownerName)],
+			actions: null,
 			now: Date.now(),
 			ui: this.ui,
 			openNote: (path) => this.openNote(path),

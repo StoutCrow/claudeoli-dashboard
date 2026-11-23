@@ -1,4 +1,5 @@
 import { cell } from "../../core/tables.ts";
+import { age } from "../../core/time.ts";
 import { el, emptyState, identityDot, md, pcPart, row } from "../common.ts";
 import type { SectionCtx } from "../view.ts";
 
@@ -15,15 +16,32 @@ export function knownPcs(ctx: SectionCtx): string[] {
 	for (const r of v.machines?.rows ?? []) add(md(cell(r, v.machines!, "PC")));
 	for (const pc of Object.keys(v.sessionLogs)) add(pc);
 	for (const r of v.now?.rows ?? []) add(pcPart(cell(r, v.now!, "Who / session")));
+	for (const pc of Object.keys(ctx.live?.presence ?? {})) add(pc);
 	return out;
 }
 
-export function pcHeading(parent: HTMLElement, pc: string, note?: string): HTMLElement {
+/** A bot is offline when it hasn't published presence for this long (it publishes every 5 min). */
+export const BOT_STALE_MS = 15 * 60_000;
+
+/** "bot 20 s ago" with a filled dot, or "bot 3 h ago (offline)" with a hollow one; null when not live. */
+export function botLine(ctx: SectionCtx, pc: string): { text: string; up: boolean } | null {
+	const p = ctx.live?.presence[pc];
+	if (!ctx.live) return null;
+	if (!p) return { text: "no bot seen", up: false };
+	const up = ctx.now - p.seen < BOT_STALE_MS;
+	return { text: `bot ${age(ctx.now - p.seen)} ago${up ? "" : " (offline)"}`, up };
+}
+
+export function pcHeading(parent: HTMLElement, pc: string, note?: string, bot?: { text: string; up: boolean } | null): HTMLElement {
 	const g = el("div", { cls: "co-group" }, parent);
 	const h = el("div", { cls: "co-group-head" }, g);
 	identityDot(h, pc);
 	el("span", { cls: "co-group-title", text: pc.toUpperCase() }, h);
 	if (note) el("span", { cls: "co-group-note", text: note }, h);
+	if (bot) {
+		const b = el("span", { cls: `co-bot${bot.up ? " is-up" : ""}`, text: bot.text }, h);
+		b.setAttribute("aria-label", bot.up ? "Bot online" : "Bot offline");
+	}
 	return g;
 }
 
@@ -36,7 +54,10 @@ export function renderSessions(box: HTMLElement, ctx: SectionCtx) {
 		return;
 	}
 	for (const pc of pcs) {
-		const g = pcHeading(box, pc);
+		const g = pcHeading(box, pc, undefined, botLine(ctx, pc));
+		for (const s of ctx.live?.presence[pc]?.sessions ?? []) {
+			row(g, { kind: "Live", who: s, title: s, detail: "running now", source: "live", ts: ctx.live!.presence[pc].seen, now: ctx.now });
+		}
 		const now = (v.now?.rows ?? []).filter((r) => pcPart(cell(r, v.now!, "Who / session")) === pc);
 		for (const r of now) {
 			row(g, {

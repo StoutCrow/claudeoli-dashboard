@@ -1,7 +1,7 @@
 import { cell, type Table } from "../../core/tables.ts";
 import { emptyState, md, row } from "../common.ts";
 import type { SectionCtx } from "../view.ts";
-import { knownPcs, openButton, pcHeading } from "./sessions.ts";
+import { botLine, knownPcs, openButton, pcHeading } from "./sessions.ts";
 
 const rowFor = (t: Table | null, pc: string) => t?.rows.find((r) => md(cell(r, t, "PC")).toLowerCase() === pc);
 
@@ -15,7 +15,9 @@ export function renderDevices(box: HTMLElement, ctx: SectionCtx) {
 	const ts = ctx.vault.mtimes[path];
 	for (const pc of knownPcs(ctx)) {
 		const m = rowFor(v.machines, pc);
-		const g = pcHeading(box, pc, m ? md(cell(m, v.machines, "Role")) : undefined);
+		const g = pcHeading(box, pc, m ? md(cell(m, v.machines, "Role")) : undefined, botLine(ctx, pc));
+		const p = ctx.live?.presence[pc];
+		if (p) row(g, { title: `Bus bot, protocol v${p.version}`, detail: p.version < 2 ? "Too old to accept approvals from the dashboard: update this PC's bot." : `${p.sessions.length} session${p.sessions.length === 1 ? "" : "s"} running`, source: "live", ts: p.seen, now: ctx.now, muted: p.version >= 2 });
 		if (!m) {
 			row(g, { title: "Not in the Machines table", now: ctx.now, muted: true });
 			continue;
