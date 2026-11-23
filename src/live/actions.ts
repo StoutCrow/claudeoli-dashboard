@@ -1,22 +1,26 @@
 // What the owner can do on the bus from the dashboard. Every action is an event sent from the owner's
 // own account on this device; the bots check it (sender, level, the handoff's state), not the plugin.
 import type { Claim } from "../core/live.ts";
+import type { Roles } from "../core/levels.ts";
+import { levelsFor, projectRoomBody, rolesAfter, type Levels } from "../core/rooms.ts";
 import {
-	CLAIM_TYPE, CONTENT_KEY, DECISION_TYPE, OWNER_ADDRESS, PROTOCOL_V, checkText, isAddress, newThreadId, newTxnId,
+	CLAIM_TYPE, CONTENT_KEY, DECISION_TYPE, OWNER_ADDRESS, ROLES_TYPE, PROTOCOL_V, checkText, isAddress, newThreadId, newTxnId,
 	type BusMessage, type Decision,
 } from "../core/protocol.ts";
 import type { Matrix } from "./matrix.ts";
 
 const SUMMARY_CHARS = 80;
 
+type Ops = Pick<Matrix, "send" | "putState"> & Partial<Pick<Matrix, "createRoom" | "invite" | "kick">>;
+
 export class BusActions {
-	private matrix: Pick<Matrix, "send" | "putState">;
+	private matrix: Ops;
 	private roomId: string;
 	private ownerLabel: string;
 	/** Keys of actions in flight, so a double click sends once. */
 	private busy = new Set<string>();
 
-	constructor(matrix: Pick<Matrix, "send" | "putState">, roomId: string, ownerLabel: string) {
+	constructor(matrix: Ops, roomId: string, ownerLabel: string) {
 		this.matrix = matrix;
 		this.roomId = roomId;
 		this.ownerLabel = ownerLabel || "Owner";
@@ -71,6 +75,42 @@ export class BusActions {
 	/** A new message to a session, a PC or all, in a new thread. */
 	send(to: string, text: string): Promise<boolean> {
 		return this.message(to, text, "chat", newThreadId());
+	}
+
+	// ---- the owner's people operations (People section) ----
+
+	/** Writes the roles; the server refuses it from anyone below power 100. */
+	setRoles(roles: Roles): Promise<string> {
+		return this.matrix.putState(this.roomId, ROLES_TYPE, "", roles);
+	}
+
+	/** Sets the agents room's power levels to what levelsFor says (bots can't; the owner can). */
+	updateLevels(pl: Levels, ownerId: string, bots: string[], collaboratorsOn: boolean): Promise<string> {
+		return this.matrix.putState(this.roomId, "m.room.power_levels", "", levelsFor(pl, ownerId, bots, collaboratorsOn));
+	}
+
+	/** Shares a project with a person: its room is made the first time (inviting the bots and them), then roles record it. */
+	async share(roles: Roles, user: string, project: string, ownerId: string, bots: string[]): Promise<Roles> {
+		let room = roles.projects[project]?.room;
+		const made = !room;
+		if (!room) {
+			if (!this.matrix.createRoom) throw new Error("can't create rooms");
+			room = await this.matrix.createRoom(projectRoomBody(project, ownerId, bots, { [user]: roles.users[user]?.level ?? "viewer" }));
+		}
+		const next = rolesAfter(roles, { user, share: project });
+		next.projects[project] = { room };
+		await this.setRoles(next);
+		if (!made) await this.matrix.invite?.(room, user);
+		return next;
+	}
+
+	/** Stops sharing: roles first (so bots stop copying for them), then the person leaves the room. */
+	async unshare(roles: Roles, user: string, project: string): Promise<Roles> {
+		const next = rolesAfter(roles, { user, unshare: project });
+		await this.setRoles(next);
+		const room = roles.projects[project]?.room;
+		if (room) await this.matrix.kick?.(room, user);
+		return next;
 	}
 
 	private message(to: string, text: string, kind: "chat" | "answer", thread: string, replyTo?: string): Promise<boolean> {

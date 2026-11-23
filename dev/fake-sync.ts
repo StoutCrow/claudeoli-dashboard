@@ -20,6 +20,9 @@ function sample() {
 		ev({ type: "org.claudeoli.presence", sender: bot("pc-c"), state_key: "pc-c", content: { v: 1, sessions: [], seen: ago(3 * 3600_000) } }),
 		ev({ type: "org.claudeoli.claim", sender: bot("pc-a"), state_key: "project-x:src/main.ts", content: { v: 1, holder: "pc-a/project-x", note: "2.0 changelog", expires: Date.now() + 3 * 3600_000 } }),
 		ev({ type: "org.claudeoli.claim", sender: bot("pc-b"), state_key: "project-y:src/sync.ts", content: { v: 1, holder: "pc-b/setup", note: "retry loop", expires: ago(40 * 60_000) } }),
+		// A room made before the levels change: everyone at 50, so People offers "Update room levels".
+		ev({ type: "m.room.power_levels", sender: OWNER, state_key: "", content: { users: { [OWNER]: 100, [bot("pc-a")]: 50, [bot("pc-b")]: 50 }, users_default: 50, events: { "org.claudeoli.claim": 50, "org.claudeoli.presence": 50 } } }),
+		ev({ type: "org.claudeoli.roles", sender: OWNER, state_key: "", content: { v: 2, collaborators: false, projects: {}, users: { "@viewer:example.org": { level: "viewer", projects: [], pcs: ["pc-d"] } } } }),
 		// A forged claim (pc-a's bot holding for pc-b): the dashboard must not show it.
 		ev({ type: "org.claudeoli.claim", sender: bot("pc-a"), state_key: "project-y:README.md", content: { v: 1, holder: "pc-b/setup", expires: Date.now() + 3600_000 } }),
 	];

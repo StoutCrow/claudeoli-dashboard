@@ -57,6 +57,10 @@ export interface SectionCtx {
 	needs: NeedsItem[];
 	/** Null until the actions exist (and for viewers). */
 	actions: ActionUI | null;
+	/** The bus as this device's account (null when not live). */
+	bus: BusActions | null;
+	/** This device's Matrix user, if signed in. */
+	me: string | null;
 	now: number;
 	/** Per-view UI state that survives a redraw (filters). */
 	ui: Record<string, string>;
@@ -179,6 +183,8 @@ export class DashboardView extends ItemView {
 				redraw: () => this.render(),
 				vault: vaultActions(this.app, this.plugin.settings.paths),
 			}),
+			bus: this.conn.kind === "ok" ? this.bus : null,
+			me: this.plugin.secrets()?.userId ?? null,
 			now: Date.now(),
 			ui: this.ui,
 			openNote: (path) => this.openNote(path),

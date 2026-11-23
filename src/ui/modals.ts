@@ -70,7 +70,7 @@ export class ConfirmModal extends Modal {
 	onOpen() {
 		const o = this.opts;
 		this.setTitle(o.title);
-		el("p", { text: o.body }, this.contentEl);
+		el("p", { cls: "co-modal-body", text: o.body }, this.contentEl);
 		const status = el("p", { cls: "co-modal-status", attr: { role: "status" } }, this.contentEl);
 		new Setting(this.contentEl)
 			.addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()))

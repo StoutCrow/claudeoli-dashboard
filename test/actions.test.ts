@@ -82,6 +82,30 @@ test("release clears the claim's state as the owner", async () => {
   assert.deepEqual(f.sent, [{ kind: "state", type: CLAIM_TYPE, key: "x:src/a.ts", content: {} }]);
 });
 
+test("sharing a project the first time makes its room, then records it in roles", async () => {
+  const calls: string[] = [];
+  let roles: any;
+  const m = {
+    async send() { return "$x"; },
+    async putState(_r: string, type: string, _k: string, c: any) { calls.push(`state ${type}`); roles = c; return "$s"; },
+    async createRoom(body: any) { calls.push(`create ${body.name} invite=${body.invite.join(",")}`); return "!px:x"; },
+    async invite(room: string, user: string) { calls.push(`invite ${room} ${user}`); },
+    async kick(room: string, user: string) { calls.push(`kick ${room} ${user}`); },
+  };
+  const a = new BusActions(m, "!r:x", "Owner");
+  const base = { v: 2 as const, collaborators: false, projects: {}, users: { "@v:x": { level: "viewer" as const, projects: [], pcs: [] } } };
+  const after = await a.share(base, "@v:x", "project-x", "@owner:x", ["@claudeoli-pc-a:x"]);
+  assert.deepEqual(calls, ["create ClaudeOli · project-x invite=@claudeoli-pc-a:x,@v:x", "state org.claudeoli.roles"]);
+  assert.equal(roles.projects["project-x"].room, "!px:x");
+  assert.deepEqual(roles.users["@v:x"].projects, ["project-x"]);
+  calls.length = 0;
+  const after2 = await a.share({ ...after, users: { ...after.users, "@w:x": { level: "viewer", projects: [], pcs: [] } } }, "@w:x", "project-x", "@owner:x", []);
+  assert.deepEqual(calls, ["state org.claudeoli.roles", "invite !px:x @w:x"]);
+  calls.length = 0;
+  await a.unshare(after2, "@w:x", "project-x");
+  assert.deepEqual(calls, ["state org.claudeoli.roles", "kick !px:x @w:x"]);
+});
+
 test("text over the bus limit, or to a bad address, is refused before sending", async () => {
   const f = fakeMatrix();
   const a = new BusActions(f.matrix, "!r:x", "Owner");
