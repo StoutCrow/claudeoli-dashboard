@@ -38,6 +38,8 @@ export interface LiveState {
 	/** org.claudeoli.roles content as sent (parsed by core/levels.ts). */
 	roles: unknown;
 	powerLevels: Json | null;
+	/** Bot accounts joined or invited (a new bot can't publish presence until the owner raises it to 50). */
+	bots: string[];
 }
 
 export interface LiveCtx {
@@ -48,7 +50,7 @@ export interface LiveCtx {
 export const MAX_MESSAGES = 500;
 
 export function emptyLive(): LiveState {
-	return { presence: {}, claims: [], messages: [], statuses: {}, decisions: {}, roles: null, powerLevels: null };
+	return { presence: {}, claims: [], messages: [], statuses: {}, decisions: {}, roles: null, powerLevels: null, bots: [] };
 }
 
 /** Whether status `b` is newer than `a`: by server time, then by event id, the same rule as the bots. */
@@ -97,7 +99,7 @@ function botMessage(ev: MatrixEvent, pc: string): BusMessage | null {
 }
 
 export function applySync(prev: LiveState, events: MatrixEvent[], ctx: LiveCtx): LiveState {
-	const s: LiveState = { ...prev, presence: { ...prev.presence }, claims: [...prev.claims], messages: [...prev.messages], statuses: { ...prev.statuses }, decisions: { ...prev.decisions } };
+	const s: LiveState = { ...prev, bots: [...prev.bots], presence: { ...prev.presence }, claims: [...prev.claims], messages: [...prev.messages], statuses: { ...prev.statuses }, decisions: { ...prev.decisions } };
 	const seen = new Set(s.messages.map((m) => m.id));
 	for (const ev of events) {
 		if (!ev || typeof ev.type !== "string" || typeof ev.sender !== "string") continue;
@@ -125,6 +127,10 @@ export function applySync(prev: LiveState, events: MatrixEvent[], ctx: LiveCtx):
 				s.roles = ev.content;
 			} else if (ev.type === "m.room.power_levels" && key === "") {
 				s.powerLevels = ev.content;
+			} else if (ev.type === "m.room.member" && /^@claudeoli-[a-z0-9-]+:/.test(key)) {
+				const m = asStr(ev.content.membership);
+				s.bots = s.bots.filter((b) => b !== key);
+				if (m === "join" || m === "invite") s.bots.push(key);
 			}
 			continue;
 		}
@@ -139,6 +145,9 @@ export function applySync(prev: LiveState, events: MatrixEvent[], ctx: LiveCtx):
 		if (!m) continue;
 		seen.add(m.id);
 		if (m.kind === "status") {
+			// Only the bot of the PC the handoff is for speaks for it ("expired" also from the sending PC), as the bots read it.
+			const h = s.messages.find((x) => x.id === m.ref);
+			if (!h || !(pcOf(m.from) === pcOf(h.to) || (m.state === "expired" && pcOf(m.from) === pcOf(h.from)))) continue;
 			const mark = { state: m.state!, ts: m.ts, id: m.id };
 			if (newer(s.statuses[m.ref!], mark)) s.statuses[m.ref!] = mark;
 			continue;

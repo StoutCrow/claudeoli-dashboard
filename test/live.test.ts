@@ -75,15 +75,17 @@ test("the owner's messages are read from the block, or from a 'to: text' body", 
 
 test("a status from the owner is ignored; from a bot it is kept apart from messages", () => {
   const s = applySync(emptyLive(), [
+    busMsg(BOT_B, { from: "pc-b/y", to: "pc-a/x", kind: "handoff", thread: "t", text: "h" }, { event_id: "$h" }),
     busMsg(OWNER, { from: "oli", to: "pc-a/x", kind: "status", thread: "t", text: "", ref: "$h", state: "approved" }),
     busMsg(BOT_A, { from: "pc-a", to: "pc-b/y", kind: "status", thread: "t", text: "approved", ref: "$h", state: "approved" }),
   ], ctx);
   assert.equal(s.statuses["$h"].state, "approved");
-  assert.equal(s.messages.length, 0);
+  assert.equal(s.messages.filter((m) => m.kind === "status").length, 0);
 });
 
 test("two statuses with the same timestamp resolve to the larger event id", () => {
   const s = applySync(emptyLive(), [
+    busMsg(BOT_B, { from: "pc-b/y", to: "pc-a/x", kind: "handoff", thread: "t", text: "h" }, { event_id: "$h" }),
     busMsg(BOT_A, { from: "pc-a", to: "pc-b/y", kind: "status", thread: "t", text: "", ref: "$h", state: "picked-up" }, { event_id: "$b", origin_server_ts: 50 }),
     busMsg(BOT_A, { from: "pc-a", to: "pc-b/y", kind: "status", thread: "t", text: "", ref: "$h", state: "approved" }, { event_id: "$a", origin_server_ts: 50 }),
   ], ctx);
@@ -117,4 +119,26 @@ test("the same event twice is kept once", () => {
   const e = busMsg(BOT_A, { from: "pc-a/x", to: "all", kind: "chat", thread: "t", text: "hi" });
   const s = applySync(applySync(emptyLive(), [e], ctx), [e], ctx);
   assert.equal(s.messages.length, 1);
+});
+
+test("a status counts only from the bot of the handoff's target PC (expired also from its sender's)", () => {
+  const h = busMsg(BOT_A, { from: "pc-a/x", to: "pc-b/y", kind: "handoff", thread: "t", text: "Finish it" }, { event_id: "$h2", origin_server_ts: 10 });
+  const fromSender = busMsg(BOT_A, { from: "pc-a", to: "pc-a/x", kind: "status", thread: "t", text: "", ref: "$h2", state: "refused" }, { origin_server_ts: 20 });
+  let s = applySync(emptyLive(), [h, fromSender], ctx);
+  assert.equal(s.statuses["$h2"], undefined);
+  s = applySync(s, [busMsg(BOT_A, { from: "pc-a", to: "pc-a/x", kind: "status", thread: "t", text: "", ref: "$h2", state: "expired" }, { origin_server_ts: 30 })], ctx);
+  assert.equal(s.statuses["$h2"].state, "expired");
+  s = applySync(s, [busMsg(BOT_B, { from: "pc-b", to: "pc-a/x", kind: "status", thread: "t", text: "", ref: "$h2", state: "approved" }, { origin_server_ts: 40 })], ctx);
+  assert.equal(s.statuses["$h2"].state, "approved");
+});
+
+test("bot accounts in the room are listed from membership, joined or invited", () => {
+  let s = applySync(emptyLive(), [
+    ev({ type: "m.room.member", sender: OWNER, state_key: "@claudeoli-pc-z:example.org", content: { membership: "invite" } }),
+    ev({ type: "m.room.member", sender: OWNER, state_key: "@someone:example.org", content: { membership: "join" } }),
+    ev({ type: "m.room.member", sender: BOT_A, state_key: BOT_A, content: { membership: "join" } }),
+  ], ctx);
+  assert.deepEqual(s.bots.sort(), [BOT_A, "@claudeoli-pc-z:example.org"]);
+  s = applySync(s, [ev({ type: "m.room.member", sender: OWNER, state_key: "@claudeoli-pc-z:example.org", content: { membership: "leave" } })], ctx);
+  assert.deepEqual(s.bots, [BOT_A]);
 });

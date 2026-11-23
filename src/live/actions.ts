@@ -56,7 +56,8 @@ export class BusActions {
 			const d: Decision = { v: 2, decision, ref: h.id, target: h.to };
 			await this.matrix.send(this.roomId, DECISION_TYPE, d, newTxnId());
 			const verb = decision === "approve" ? "approved" : "refused";
-			await this.matrix.send(this.roomId, "m.room.message", { msgtype: "m.text", body: `${this.ownerLabel} ${verb}: ${h.text.slice(0, SUMMARY_CHARS)}` }, newTxnId());
+			// The decision is sent: the readable line is a courtesy, so failing it doesn't undo or re-offer the decision.
+			await this.matrix.send(this.roomId, "m.room.message", { msgtype: "m.text", body: `${this.ownerLabel} ${verb}: ${h.text.slice(0, SUMMARY_CHARS)}` }, newTxnId()).catch(() => undefined);
 		});
 	}
 

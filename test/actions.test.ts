@@ -44,6 +44,20 @@ test("two approves before the first resolves send one decision", async () => {
   assert.equal(f.sent.filter((s) => s.type === DECISION_TYPE).length, 1);
 });
 
+test("a decision that was sent counts as sent even if the readable line fails", async () => {
+  const sent: string[] = [];
+  const m = {
+    async send(_r: string, type: string) {
+      if (type === "m.room.message") throw new Error("network blip");
+      sent.push(type);
+      return "$d";
+    },
+    async putState() { return "$s"; },
+  };
+  assert.equal(await new BusActions(m, "!r:x", "Owner").approve(handoff), true);
+  assert.deepEqual(sent, [DECISION_TYPE]);
+});
+
 test("refuse sends a refuse decision", async () => {
   const f = fakeMatrix();
   await new BusActions(f.matrix, "!r:x", "Owner").refuse(handoff);

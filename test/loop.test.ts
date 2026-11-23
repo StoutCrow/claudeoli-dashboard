@@ -107,5 +107,8 @@ test("pause(true) makes no new request until pause(false)", async () => {
 test("the filter asks for the agents room and the bus's event types only", () => {
   const f = syncFilter("!r:x") as { room: { rooms: string[]; timeline: { types: string[] } } };
   assert.deepEqual(f.room.rooms, ["!r:x"]);
-  assert.deepEqual(f.room.timeline.types, ["m.room.message", DECISION_TYPE]);
+  // State changes inside a sync window come in the timeline, so the state types are there too.
+  for (const t of ["m.room.message", DECISION_TYPE, "org.claudeoli.claim", "org.claudeoli.presence", "org.claudeoli.roles", "m.room.power_levels", "m.room.member"]) {
+    assert.ok(f.room.timeline.types.includes(t), t);
+  }
 });

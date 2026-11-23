@@ -8,12 +8,15 @@ export const LONG_POLL_MS = 30_000;
 const FIRST_BACKOFF_MS = 2_000;
 const MAX_BACKOFF_MS = 60_000;
 
+const STATE_TYPES = [CLAIM_TYPE, PRESENCE_TYPE, ROLES_TYPE, "m.room.power_levels", "m.room.member"];
+
 export function syncFilter(roomId: string): object {
 	return {
 		room: {
 			rooms: [roomId],
-			timeline: { limit: 100, types: ["m.room.message", DECISION_TYPE] },
-			state: { types: [CLAIM_TYPE, PRESENCE_TYPE, ROLES_TYPE, "m.room.power_levels"] },
+			// State changes inside a sync window arrive in the timeline, so the state types are listed there too.
+			timeline: { limit: 100, types: ["m.room.message", DECISION_TYPE, ...STATE_TYPES] },
+			state: { types: STATE_TYPES },
 			ephemeral: { types: [] },
 			account_data: { types: [] },
 		},

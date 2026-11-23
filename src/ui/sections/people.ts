@@ -16,7 +16,8 @@ export function renderPeople(box: HTMLElement, ctx: SectionCtx) {
 	const pl = (live.powerLevels ?? {}) as { users?: Record<string, number>; users_default?: number; events?: Record<string, number> };
 	const isOwner = (pl.users?.[me] ?? pl.users_default ?? 0) >= POWER.owner;
 	const roles: Roles = parseRoles(live.roles) ?? { v: 2, collaborators: false, projects: {}, users: {} };
-	const bots = Object.keys(live.presence).map((pc) => `@claudeoli-${pc}:${serverOf(me)}`);
+	// From membership too: a newly invited bot is at 0 and can't publish presence until it is raised.
+	const bots = [...new Set([...live.bots, ...Object.keys(live.presence).map((pc) => `@claudeoli-${pc}:${serverOf(me)}`)])].sort();
 	const bus = ctx.bus;
 	const run = (p: Promise<unknown>, done: string) => p.then(() => new Notice(done), (e: Error) => new Notice(`Not changed: ${e.message}`));
 
