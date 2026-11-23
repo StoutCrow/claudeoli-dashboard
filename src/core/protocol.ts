@@ -95,7 +95,7 @@ export function checkText(text: string): string | null {
 	return null;
 }
 
-const hex = (n: number) => Array.from(globalThis.crypto.getRandomValues(new Uint8Array(n)), (b) => b.toString(16).padStart(2, "0")).join("");
+const hex = (n: number) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => b.toString(16).padStart(2, "0")).join("");
 
 export const newThreadId = () => "t-" + hex(4);
 export const newTxnId = () => "co-" + hex(8);

@@ -109,6 +109,11 @@ button.mod-cta {
 	color: var(--text-on-accent);
 	box-shadow: none;
 }
+button.mod-destructive {
+	background: var(--text-error);
+	color: var(--text-on-accent);
+	box-shadow: none;
+}
 button:disabled {
 	opacity: 0.5;
 	cursor: default;

@@ -40,7 +40,7 @@ export class SyncLoop {
 	private gen = 0;
 	private paused = false;
 	private wake: (() => void) | undefined;
-	private timer = 0;
+	private cancelSleep: (() => void) | undefined;
 
 	constructor(o: SyncLoopOptions) {
 		this.o = o;
@@ -53,7 +53,7 @@ export class SyncLoop {
 
 	stop() {
 		this.gen++;
-		globalThis.clearTimeout(this.timer);
+		this.cancelSleep?.();
 		this.wakeUp();
 	}
 
@@ -75,7 +75,8 @@ export class SyncLoop {
 		const slept = this.o.sleep
 			? this.o.sleep(ms)
 			: new Promise<void>((r) => {
-					this.timer = Number(globalThis.setTimeout(r, ms));
+					const id = window.setTimeout(r, ms);
+					this.cancelSleep = () => window.clearTimeout(id);
 				});
 		return Promise.race([woken, slept]);
 	}

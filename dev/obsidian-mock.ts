@@ -291,6 +291,10 @@ class ButtonComponent {
 		this.buttonEl.addClass("mod-warning");
 		return this;
 	}
+	setDestructive() {
+		this.buttonEl.addClass("mod-destructive");
+		return this;
+	}
 	setDisabled(d: boolean) {
 		this.buttonEl.disabled = d;
 		return this;

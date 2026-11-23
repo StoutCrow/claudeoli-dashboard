@@ -85,8 +85,8 @@ export class ConfirmModal extends Modal {
 						b.setDisabled(false);
 					}
 				});
-				if (o.warning) b.setWarning();
-				else b.setCta();
+				if (o.warning) b.setDestructive();
+				b.setCta();
 			});
 	}
 
