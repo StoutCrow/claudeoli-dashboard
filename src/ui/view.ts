@@ -10,6 +10,7 @@ import { httpObsidian } from "../live/http.ts";
 import { SyncLoop } from "../live/loop.ts";
 import { BusActions } from "../live/actions.ts";
 import { makeActionUI } from "./actions-ui.ts";
+import { vaultActions } from "./vault-actions.ts";
 import { handoffState } from "../core/live.ts";
 import { age, clock } from "../core/time.ts";
 import { button, dropdown, el } from "./common.ts";
@@ -176,6 +177,7 @@ export class DashboardView extends ItemView {
 				now: Date.now(),
 				sent: this.sent,
 				redraw: () => this.render(),
+				vault: vaultActions(this.app, this.plugin.settings.paths),
 			}),
 			now: Date.now(),
 			ui: this.ui,
