@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Built files: made by `npm run build`, attached to each release by the workflow
+/main.js
+/styles.css
+
+# Harness builds and local-only settings (vault paths for scripts/install.ps1)
+dev/out/
+dev/*.local.*
+
+# Plan-execution scratch
+.superpowers/
+
+# Editor and tool settings
+.claude/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,10 @@
+{
+	"id": "claudeoli-dashboard",
+	"name": "ClaudeOli",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.0",
+	"description": "One view of your Claude Code sessions, bots, devices and setup work, from your vault notes and a Matrix agent bus. Written entirely by AI (Claude).",
+	"author": "Oli_G",
+	"authorUrl": "https://github.com/StoutCrow",
+	"isDesktopOnly": false
+}
