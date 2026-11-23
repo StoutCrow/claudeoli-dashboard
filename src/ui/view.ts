@@ -8,6 +8,9 @@ import { serverOf, type BusMessage } from "../core/protocol.ts";
 import { Matrix } from "../live/matrix.ts";
 import { httpObsidian } from "../live/http.ts";
 import { SyncLoop } from "../live/loop.ts";
+import { BusActions } from "../live/actions.ts";
+import { makeActionUI } from "./actions-ui.ts";
+import { handoffState } from "../core/live.ts";
 import { age, clock } from "../core/time.ts";
 import { button, dropdown, el } from "./common.ts";
 import { renderNeeds } from "./sections/needs.ts";
@@ -68,6 +71,9 @@ export class DashboardView extends ItemView {
 	private conn: ConnState = { kind: "signed-out" };
 	private live: LiveState | null = null;
 	private loop: SyncLoop | null = null;
+	private bus: BusActions | null = null;
+	/** Handoffs decided here whose status hasn't come back yet. */
+	private sent = new Set<string>();
 	private ui: Record<string, string> = {};
 	private pendingRead = 0;
 
@@ -133,16 +139,20 @@ export class DashboardView extends ItemView {
 		this.loop?.stop();
 		this.loop = null;
 		this.live = null;
+		this.bus = null;
 		const s = this.plugin.secrets();
 		this.conn = s ? { kind: "connecting" } : { kind: "signed-out" };
 		if (s) {
+			const matrix = new Matrix(httpObsidian, s.homeserver, s.token);
+			this.bus = new BusActions(matrix, s.roomId, this.plugin.settings.ownerName);
 			this.loop = new SyncLoop({
-				matrix: new Matrix(httpObsidian, s.homeserver, s.token),
+				matrix,
 				roomId: s.roomId,
 				ctx: { ownerId: s.userId, serverName: serverOf(s.userId) },
 				onChange: (state, conn) => {
 					this.live = state;
 					this.conn = conn;
+					for (const id of this.sent) if (handoffState(state, id, Date.now()) !== "pending") this.sent.delete(id);
 					this.render();
 				},
 			});
@@ -159,7 +169,14 @@ export class DashboardView extends ItemView {
 			live: this.conn.kind === "ok" ? this.live : null,
 			conn: this.conn,
 			needs: [...(this.conn.kind === "ok" && this.live ? needsFromLive(this.live, Date.now()) : []), ...needsFromVault(this.vault.model, this.plugin.settings.ownerName)],
-			actions: null,
+			actions: makeActionUI({
+				app: this.app,
+				bus: this.conn.kind === "ok" ? this.bus : null,
+				live: this.conn.kind === "ok" ? this.live : null,
+				now: Date.now(),
+				sent: this.sent,
+				redraw: () => this.render(),
+			}),
 			now: Date.now(),
 			ui: this.ui,
 			openNote: (path) => this.openNote(path),

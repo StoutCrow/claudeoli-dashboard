@@ -335,6 +335,16 @@
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 }
+.co-note {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	white-space: nowrap;
+}
+.co-quote {
+	padding-left: 12px;
+	border-left: 2px solid var(--background-modifier-border);
+	white-space: pre-line;
+}
 .co-hidden {
 	display: none;
 }
