@@ -70,3 +70,10 @@ export function needsFromLive(s: LiveState, now: number): NeedsItem[] {
 export function decisionsEnabled(s: LiveState, h: BusMessage): boolean {
 	return (s.presence[pcOf(h.to)]?.version ?? 0) >= PROTOCOL_V;
 }
+
+/** How many other PCs' bots say they run a different commit (0 when this one doesn't say). */
+export function commitDiffers(s: LiveState, pc: string): number {
+	const mine = s.presence[pc]?.commit;
+	if (!mine) return 0;
+	return Object.values(s.presence).filter((p) => p.pc !== pc && p.commit && p.commit !== mine).length;
+}

@@ -120,6 +120,14 @@ test("sharing a project the first time makes its room, then records it in roles"
   assert.deepEqual(calls, ["state org.claudeoli.roles", "kick !px:x @w:x"]);
 });
 
+test("update bots sends the owner's update event naming only its target", async () => {
+  const f = fakeMatrix();
+  await new BusActions(f.matrix, "!r:x", "Owner").updateBots("all");
+  await new BusActions(f.matrix, "!r:x", "Owner").updateBots("pc-a");
+  assert.deepEqual(f.sent.map((s) => [s.type, s.content]), [["org.claudeoli.update", { v: 2, target: "all" }], ["org.claudeoli.update", { v: 2, target: "pc-a" }]]);
+  await assert.rejects(new BusActions(f.matrix, "!r:x", "Owner").updateBots("Not A PC"), /PC/);
+});
+
 test("text over the bus limit, or to a bad address, is refused before sending", async () => {
   const f = fakeMatrix();
   const a = new BusActions(f.matrix, "!r:x", "Owner");

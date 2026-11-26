@@ -11,6 +11,9 @@ export interface Presence {
 	sessions: string[];
 	seen: number;
 	version: number;
+	/** The commit and branch the bot runs, when it says (bus 2026-11-25 and later). */
+	commit?: string;
+	branch?: string;
 }
 
 export interface Claim {
@@ -112,7 +115,7 @@ export function applySync(prev: LiveState, events: MatrixEvent[], ctx: LiveCtx):
 				if (!pc || pc !== key) continue;
 				const c = ev.content;
 				const sessions = Array.isArray(c.sessions) ? c.sessions.filter((x): x is string => typeof x === "string") : [];
-				s.presence[key] = { pc: key, sessions, seen: Number(c.seen ?? ev.origin_server_ts) || ev.origin_server_ts, version: Number(c.version ?? 1) || 1 };
+				s.presence[key] = { pc: key, sessions, seen: Number(c.seen ?? ev.origin_server_ts) || ev.origin_server_ts, version: Number(c.version ?? 1) || 1, commit: asStr(c.commit), branch: asStr(c.branch) };
 			} else if (ev.type === CLAIM_TYPE) {
 				const holder = asStr(ev.content.holder);
 				const current = s.claims.find((c) => c.key === key);

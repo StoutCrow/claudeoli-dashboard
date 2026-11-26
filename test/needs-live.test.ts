@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { decisionsEnabled, needsFromLive } from "../src/core/needs.ts";
+import { commitDiffers, decisionsEnabled, needsFromLive } from "../src/core/needs.ts";
 import { emptyLive, type LiveState } from "../src/core/live.ts";
 import type { BusMessage } from "../src/core/protocol.ts";
 
@@ -35,4 +35,12 @@ test("decisions need a v2 bot on the handoff's PC", () => {
   assert.equal(decisionsEnabled(live({ presence: { "pc-b": { pc: "pc-b", sessions: [], seen: 0, version: 1 } } }), h), false);
   assert.equal(decisionsEnabled(live({ presence: { "pc-b": { pc: "pc-b", sessions: [], seen: 0, version: 2 } } }), h), true);
   assert.equal(decisionsEnabled(live({}), h), false);
+});
+
+test("a PC whose bot runs a different commit from the others is counted", () => {
+  const p = (pc: string, commit?: string) => ({ pc, sessions: [], seen: 0, version: 2, commit });
+  const s = live({ presence: { "pc-a": p("pc-a", "aaaaaaa"), "pc-b": p("pc-b", "aaaaaaa"), "pc-c": p("pc-c", "bbbbbbb"), "pc-d": p("pc-d") } });
+  assert.equal(commitDiffers(s, "pc-a"), 1);
+  assert.equal(commitDiffers(s, "pc-c"), 2);
+  assert.equal(commitDiffers(s, "pc-d"), 0, "a bot that doesn't say compares with nobody");
 });
