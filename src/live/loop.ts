@@ -30,7 +30,7 @@ export function syncFilter(roomId: string, first = false): object {
 }
 
 export interface SyncLoopOptions {
-	matrix: Pick<Matrix, "sync">;
+	matrix: Pick<Matrix, "sync"> & Partial<Pick<Matrix, "getState">>;
 	roomId: string;
 	ctx: LiveCtx;
 	onChange: (s: LiveState, c: ConnState) => void;
@@ -108,7 +108,14 @@ export class SyncLoop {
 				const r = await matrix.sync(since, since ? LONG_POLL_MS : 0, syncFilter(roomId, !since));
 				if (g !== this.gen) return;
 				const room = r.rooms?.join?.[roomId];
-				const events = [...(room?.state?.events ?? []), ...(room?.timeline?.events ?? [])];
+				let events = [...(room?.state?.events ?? []), ...(room?.timeline?.events ?? [])];
+				if (!since && matrix.getState) {
+					// The state block is the state at the start of the timeline, and the first timeline holds messages
+					// only, so a later state change would be missed: apply the room's current state last.
+					const current = await matrix.getState(roomId);
+					if (g !== this.gen) return;
+					events = [...events, ...current.filter((e) => e.state_key !== undefined)];
+				}
 				if (events.length) this.state = applySync(this.state, events, this.o.ctx);
 				since = r.next_batch;
 				backoff = FIRST_BACKOFF_MS;

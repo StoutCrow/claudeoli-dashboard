@@ -111,6 +111,33 @@ test("the first sync's timeline holds messages and decisions only (state comes i
   assert.ok(f.room.state.types.includes("org.claudeoli.presence"));
 });
 
+test("the first sync also applies the room's current state, after its messages", async () => {
+  // A sync's state block is the state at the START of its timeline; with only messages in the first timeline,
+  // a state change after the last message would be lost. The room's /state is the current state.
+  const presence = (version: number, ts: number) => ({ type: "org.claudeoli.presence", state_key: "pc-a", sender: "@claudeoli-pc-a:x", event_id: `$p${version}`, origin_server_ts: ts, content: { v: 2, version, sessions: [], seen: ts } });
+  let changes = 0;
+  const loop = new SyncLoop({
+    matrix: {
+      async sync(since: string | undefined) {
+        if (since) return new Promise<SyncResponse>(() => {});
+        return { next_batch: "s1", rooms: { join: { "!r:x": { state: { events: [presence(1, 1)] }, timeline: { events: [] } } } } } as never;
+      },
+      async getState() {
+        return [presence(2, 5)];
+      },
+    } as never,
+    roomId: "!r:x",
+    ctx: { ownerId: "@owner:x", serverName: "x" },
+    onChange: () => void changes++,
+    sleep: async () => {},
+  });
+  loop.start();
+  for (let i = 0; i < 10; i++) await tick();
+  loop.stop();
+  assert.equal(loop.state.presence["pc-a"].version, 2);
+  assert.ok(changes >= 1);
+});
+
 test("the loop uses the first-sync filter once, then the incremental one", async () => {
   const filters: { timeline: { types: string[] } }[] = [];
   const steps = [ok("s1"), ok("s2")];
