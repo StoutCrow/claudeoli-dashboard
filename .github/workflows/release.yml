@@ -1,0 +1,60 @@
+# Builds the plugin and makes a draft GitHub release whenever a version tag is pushed
+# (`git tag 0.2.0 && git push origin 0.2.0`). The tag must be the bare version, as in manifest.json,
+# with no "v". The release starts as a draft, so nothing is public until the owner publishes it.
+# Tag creation is limited by the repository's tag ruleset to the admin.
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+  # Signed build provenance for the release files (artifact attestations).
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint and mobile check
+        run: npm run lint && node scripts/check-mobile.mjs
+
+      - name: Check the tag matches manifest.json
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          version=$(node -p "require('./manifest.json').version")
+          if [ "$tag" != "$version" ]; then echo "Tag $tag doesn't match manifest.json version $version"; exit 1; fi
+
+      - name: Attest the release files were built here
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            styles.css
+            manifest.json
+
+      - name: Draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" --title="$tag" --draft main.js manifest.json styles.css
