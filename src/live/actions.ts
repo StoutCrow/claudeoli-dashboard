@@ -4,7 +4,7 @@ import type { Claim } from "../core/live.ts";
 import type { Roles } from "../core/levels.ts";
 import { levelsFor, projectRoomBody, rolesAfter, type Levels } from "../core/rooms.ts";
 import {
-	CLAIM_TYPE, CONTENT_KEY, DECISION_TYPE, OWNER_ADDRESS, ROLES_TYPE, PROTOCOL_V, checkText, isAddress, newThreadId, newTxnId,
+	CLAIM_TYPE, CONTENT_KEY, DECISION_TYPE, OWNER_ADDRESS, ROLES_TYPE, UPDATE_TYPE, isPcName, PROTOCOL_V, checkText, isAddress, newThreadId, newTxnId,
 	type BusMessage, type Decision,
 } from "../core/protocol.ts";
 import type { Matrix } from "./matrix.ts";
@@ -76,6 +76,12 @@ export class BusActions {
 	/** A new message to a session, a PC or all, in a new thread. */
 	send(to: string, text: string): Promise<boolean> {
 		return this.message(to, text, "chat", newThreadId());
+	}
+
+	/** Asks one PC's bot, or all of them, to update to the repo's main. The event names the target and nothing else. */
+	async updateBots(target: string): Promise<void> {
+		if (target !== "all" && !isPcName(target)) throw new Error(`"${target}" is not a PC name`);
+		await this.matrix.send(this.roomId, UPDATE_TYPE, { v: 2, target }, newTxnId());
 	}
 
 	// ---- the owner's people operations (People section) ----
