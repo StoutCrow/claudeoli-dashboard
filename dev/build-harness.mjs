@@ -7,11 +7,13 @@ import { fileURLToPath } from "node:url";
 
 process.chdir(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 
-const root = "dev/fixtures";
+// --vault=<path> reads a real vault instead of the samples (in memory only: the harness never writes it back).
+const root = (process.argv.find((a) => a.startsWith("--vault=")) ?? "").slice(8) || "dev/fixtures";
 const files = {};
 (function walk(dir) {
 	for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
 		const full = path.join(dir, e.name);
+		if (e.name.startsWith(".")) continue;
 		if (e.isDirectory()) walk(full);
 		else if (e.name.endsWith(".md")) files[path.relative(root, full).split(path.sep).join("/")] = fs.readFileSync(full, "utf8");
 	}

@@ -104,6 +104,37 @@ test("pause(true) makes no new request until pause(false)", async () => {
   r.loop.stop();
 });
 
+test("the first sync's timeline holds messages and decisions only (state comes in its state block)", () => {
+  // Presence updates every 5 minutes per bot would otherwise fill the 100-event timeline and push every message out.
+  const f = syncFilter("!r:x", true) as { room: { timeline: { types: string[] }; state: { types: string[] } } };
+  assert.deepEqual(f.room.timeline.types, ["m.room.message", DECISION_TYPE]);
+  assert.ok(f.room.state.types.includes("org.claudeoli.presence"));
+});
+
+test("the loop uses the first-sync filter once, then the incremental one", async () => {
+  const filters: { timeline: { types: string[] } }[] = [];
+  const steps = [ok("s1"), ok("s2")];
+  const loop = new SyncLoop({
+    matrix: {
+      async sync(_since: string | undefined, _t: number, filter: object) {
+        filters.push((filter as { room: { timeline: { types: string[] } } }).room);
+        const s = steps.shift();
+        if (s) return s;
+        return new Promise<SyncResponse>(() => {});
+      },
+    } as never,
+    roomId: "!r:x",
+    ctx: { ownerId: "@owner:x", serverName: "x" },
+    onChange: () => {},
+    sleep: async () => {},
+  });
+  loop.start();
+  for (let i = 0; i < 10; i++) await tick();
+  loop.stop();
+  assert.equal(filters[0].timeline.types.includes("org.claudeoli.presence"), false);
+  assert.equal(filters[1].timeline.types.includes("org.claudeoli.presence"), true);
+});
+
 test("the filter asks for the agents room and the bus's event types only", () => {
   const f = syncFilter("!r:x") as { room: { rooms: string[]; timeline: { types: string[] } } };
   assert.deepEqual(f.room.rooms, ["!r:x"]);
