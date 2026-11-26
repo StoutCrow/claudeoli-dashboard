@@ -75,3 +75,17 @@ export function installFakeServer(mode: string) {
 		return { status: 200, json: {} };
 	});
 }
+
+/** For live=real: requests go to the real homeserver through the browser's fetch. */
+export function installRealFetch() {
+	setRequestUrl(async (r) => {
+		const res = await fetch(r.url, { method: r.method ?? "GET", headers: r.headers, body: r.body });
+		let json: unknown = null;
+		try {
+			json = await res.json();
+		} catch {
+			json = null;
+		}
+		return { status: res.status, json };
+	});
+}

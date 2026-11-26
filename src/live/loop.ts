@@ -10,12 +10,16 @@ const MAX_BACKOFF_MS = 60_000;
 
 const STATE_TYPES = [CLAIM_TYPE, PRESENCE_TYPE, ROLES_TYPE, "m.room.power_levels", "m.room.member"];
 
-export function syncFilter(roomId: string): object {
+/**
+ * The first sync gets current state in its state block, so its timeline asks for messages and decisions only:
+ * otherwise a day of presence updates fills the 100 events and pushes every message out. Later syncs also list
+ * the state types, because a state change inside a sync window arrives in the timeline.
+ */
+export function syncFilter(roomId: string, first = false): object {
 	return {
 		room: {
 			rooms: [roomId],
-			// State changes inside a sync window arrive in the timeline, so the state types are listed there too.
-			timeline: { limit: 100, types: ["m.room.message", DECISION_TYPE, ...STATE_TYPES] },
+			timeline: { limit: 100, types: first ? ["m.room.message", DECISION_TYPE] : ["m.room.message", DECISION_TYPE, ...STATE_TYPES] },
 			state: { types: STATE_TYPES },
 			ephemeral: { types: [] },
 			account_data: { types: [] },
@@ -101,7 +105,7 @@ export class SyncLoop {
 				continue;
 			}
 			try {
-				const r = await matrix.sync(since, since ? LONG_POLL_MS : 0, syncFilter(roomId));
+				const r = await matrix.sync(since, since ? LONG_POLL_MS : 0, syncFilter(roomId, !since));
 				if (g !== this.gen) return;
 				const room = r.rooms?.join?.[roomId];
 				const events = [...(room?.state?.events ?? []), ...(room?.timeline?.events ?? [])];
