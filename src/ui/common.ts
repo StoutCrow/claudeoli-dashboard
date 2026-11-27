@@ -131,7 +131,7 @@ export function helpTip(parent: HTMLElement, text: string): HTMLElement {
 		timer = window.setTimeout(() => {
 			pop?.remove();
 			// Inside the dashboard when there is one, so a re-render or a closed tab takes the tip with it.
-			const box = el("div", { cls: "co-help-pop", text }, q.closest<HTMLElement>(".co-dash") ?? document.body);
+			const box = el("div", { cls: "co-help-pop", text }, q.closest<HTMLElement>(".co-dash") ?? activeDocument.body);
 			pop = box;
 			const r = q.getBoundingClientRect();
 			const below = r.bottom + 6 + box.offsetHeight < window.innerHeight - 8;
