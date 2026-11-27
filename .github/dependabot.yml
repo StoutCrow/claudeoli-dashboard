@@ -6,8 +6,11 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # Minor and patch updates of dev tools together; each major update gets its own PR,
+      # so one breaking change (TypeScript 7 vs typescript-eslint, say) doesn't block the rest.
       dev-dependencies:
         dependency-type: development
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
