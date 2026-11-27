@@ -6,7 +6,7 @@ import { PROTOCOL_PIN } from "../src/core/protocol.ts";
 
 test("protocol pin matches the bus", () => {
   assert.deepEqual(PROTOCOL_PIN, {
-    types: ["org.claudeoli.v1", "org.claudeoli.claim", "org.claudeoli.presence", "org.claudeoli.decision", "org.claudeoli.roles"],
+    types: ["org.claudeoli.v1", "org.claudeoli.claim", "org.claudeoli.presence", "org.claudeoli.decision", "org.claudeoli.roles", "org.claudeoli.update"],
     kinds: ["chat", "ask", "answer", "handoff", "claim", "release", "status"],
     states: ["pending", "accepted", "approved", "refused", "picked-up", "done", "dropped", "expired"],
     v: 2,

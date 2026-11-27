@@ -1,7 +1,7 @@
 // Rooms and their power levels, as the owner sets them from the People section. levelsFor and
 // levelChanges mirror the bus repo's src/room.ts (the bots can't change power levels; the owner can). Pure.
 import { POWER, type Level, type Roles } from "./levels.ts";
-import { CLAIM_TYPE, DECISION_TYPE, PRESENCE_TYPE, ROLES_TYPE } from "./protocol.ts";
+import { CLAIM_TYPE, DECISION_TYPE, PRESENCE_TYPE, ROLES_TYPE, UPDATE_TYPE } from "./protocol.ts";
 
 const BOT_USER = /^@claudeoli-[a-z0-9-]+:[^\s]+$/;
 
@@ -10,6 +10,7 @@ const EVENT_LEVELS: Record<string, number> = {
 	[PRESENCE_TYPE]: 50,
 	[DECISION_TYPE]: 100,
 	[ROLES_TYPE]: 100,
+	[UPDATE_TYPE]: 100,
 	"m.room.power_levels": 100,
 	"m.room.encryption": 100,
 	"m.room.name": 100,

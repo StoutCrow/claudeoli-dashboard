@@ -9,6 +9,8 @@ export const CLAIM_TYPE = "org.claudeoli.claim";
 export const PRESENCE_TYPE = "org.claudeoli.presence";
 export const DECISION_TYPE = "org.claudeoli.decision";
 export const ROLES_TYPE = "org.claudeoli.roles";
+/** The owner asks a PC's bot (or all of them) to update itself to the repo's main. */
+export const UPDATE_TYPE = "org.claudeoli.update";
 export const KINDS = ["chat", "ask", "answer", "handoff", "claim", "release", "status"] as const;
 export const STATES = ["pending", "accepted", "approved", "refused", "picked-up", "done", "dropped", "expired"] as const;
 export const PROTOCOL_V = 2;
@@ -22,7 +24,7 @@ export type Kind = (typeof KINDS)[number];
 export type State = (typeof STATES)[number];
 
 export const PROTOCOL_PIN = {
-	types: [CONTENT_KEY, CLAIM_TYPE, PRESENCE_TYPE, DECISION_TYPE, ROLES_TYPE],
+	types: [CONTENT_KEY, CLAIM_TYPE, PRESENCE_TYPE, DECISION_TYPE, ROLES_TYPE, UPDATE_TYPE],
 	kinds: [...KINDS],
 	states: [...STATES],
 	v: PROTOCOL_V,

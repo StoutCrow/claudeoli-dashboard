@@ -1,5 +1,9 @@
 import { cell, type Table } from "../../core/tables.ts";
-import { emptyState, md, row } from "../common.ts";
+import { Notice } from "obsidian";
+import { commitDiffers } from "../../core/needs.ts";
+import { POWER } from "../../core/levels.ts";
+import { button, el, emptyState, md, row } from "../common.ts";
+import { ConfirmModal } from "../modals.ts";
 import type { SectionCtx } from "../view.ts";
 import { botLine, knownPcs, openButton, pcHeading } from "./sessions.ts";
 
@@ -13,11 +17,31 @@ export function renderDevices(box: HTMLElement, ctx: SectionCtx) {
 		return;
 	}
 	const ts = ctx.vault.mtimes[path];
+	const update = updateAction(ctx);
+	if (update) {
+		const bar = el("div", { cls: "co-toolbar is-end" }, box);
+		button(bar, "Update all bots", () => update("all"), { title: "Every PC's bot updates itself to the repo's main and reports back" });
+	}
 	for (const pc of knownPcs(ctx)) {
 		const m = rowFor(v.machines, pc);
 		const g = pcHeading(box, pc, m ? md(cell(m, v.machines, "Role")) : undefined, botLine(ctx, pc));
 		const p = ctx.live?.presence[pc];
-		if (p) row(g, { title: `Bus bot, protocol v${p.version}`, detail: p.version < 2 ? "Too old to accept approvals from the dashboard: update this PC's bot." : `${p.sessions.length} session${p.sessions.length === 1 ? "" : "s"} running`, source: "live", ts: p.seen, now: ctx.now, muted: p.version >= 2 });
+		if (p) {
+			const differs = ctx.live ? commitDiffers(ctx.live, pc) : 0;
+			const build = p.commit ? ` · ${p.commit}${p.branch && p.branch !== "main" ? ` on ${p.branch}` : ""}` : "";
+			row(g, {
+				title: `Bus bot, protocol v${p.version}${build}`,
+				detail: [
+					p.version < 2 ? "Too old to accept approvals from the dashboard: update this PC's bot." : `${p.sessions.length} session${p.sessions.length === 1 ? "" : "s"} running`,
+					differs ? `runs a different commit from ${differs} other PC${differs === 1 ? "" : "s"}` : "",
+				].filter(Boolean).join(" · "),
+				source: "live",
+				ts: p.seen,
+				now: ctx.now,
+				muted: p.version >= 2 && !differs,
+				actions: update ? (a) => button(a, "Update bot", () => update(pc)) : undefined,
+			});
+		}
 		if (!m) {
 			row(g, { title: "Not in the Machines table", now: ctx.now, muted: true });
 			continue;
@@ -41,4 +65,21 @@ export function renderDevices(box: HTMLElement, ctx: SectionCtx) {
 			row(g, { title: on ? "Sync hooks installed" : "Sync hooks not installed", detail: on ? `since ${md(cell(h, v.hooks, "Since"))}` : undefined, muted: on, source: "vault", ts, now: ctx.now });
 		}
 	}
+}
+
+/** The owner's "update the bot" action, or null when this device's account isn't the owner or the bus isn't live. */
+function updateAction(ctx: SectionCtx): ((target: string) => void) | null {
+	const bus = ctx.bus;
+	const pl = (ctx.live?.powerLevels ?? {}) as { users?: Record<string, number>; users_default?: number };
+	if (!bus || !ctx.me || (pl.users?.[ctx.me] ?? pl.users_default ?? 0) < POWER.owner) return null;
+	return (target) =>
+		new ConfirmModal(ctx.plugin.app, {
+			title: target === "all" ? "Update every bot?" : `Update ${target.toUpperCase()}'s bot?`,
+			body:
+				`${target === "all" ? "Each PC's bot" : "The bot"} updates its own checkout to the repo's main: a fast-forward only, then npm ci and the tests. ` +
+				"If the tests fail it goes back to the commit it was on. It refuses, and tells you why, when its checkout is off main, has uncommitted changes, has unpushed commits, or can't reach GitHub. " +
+				"After a good update it restarts. Each bot reports back under Messages.",
+			cta: "Update",
+			onYes: () => bus.updateBots(target).then(() => void new Notice("Update sent; each bot reports back on the bus")),
+		}).open();
 }

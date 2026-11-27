@@ -40,6 +40,7 @@ test("room levels: the same rules as the bus repo's room.ts", () => {
   assert.deepEqual(after.users, { [OWNER]: 100, [BOT]: 50, "@claudeoli-pc-b:example.org": 50 });
   assert.equal(after.users_default, 0);
   assert.equal(after.events["org.claudeoli.decision"], 100);
+  assert.equal(after.events["org.claudeoli.update"], 100);
   assert.equal(levelsFor(before, OWNER, [], true).events["org.claudeoli.decision"], 30);
   assert.ok(levelChanges(before, after).includes("users_default 50 → 0"));
   assert.deepEqual(levelChanges(after, after), []);

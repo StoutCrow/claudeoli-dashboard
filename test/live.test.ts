@@ -142,3 +142,8 @@ test("bot accounts in the room are listed from membership, joined or invited", (
   s = applySync(s, [ev({ type: "m.room.member", sender: OWNER, state_key: "@claudeoli-pc-z:example.org", content: { membership: "leave" } })], ctx);
   assert.deepEqual(s.bots, [BOT_A]);
 });
+test("presence carries the commit and branch the bot runs, when it says", () => {
+  const s = applySync(emptyLive(), [ev({ type: PRESENCE_TYPE, sender: BOT_A, state_key: "pc-a", content: { v: 2, version: 2, sessions: [], seen: 7, commit: "abc1234", branch: "main" } })], ctx);
+  assert.equal(s.presence["pc-a"].commit, "abc1234");
+  assert.equal(s.presence["pc-a"].branch, "main");
+});
