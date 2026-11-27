@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answerBoardMessage, setupToDone } from "../src/core/edits.ts";
+import { answerBoardMessage, asCell, setupToDone } from "../src/core/edits.ts";
 import { tableUnder } from "../src/core/tables.ts";
 import { loadFixtures } from "./fixtures.ts";
 
@@ -52,6 +52,13 @@ test("a board answer fills the empty Answer cell, with pipes escaped and lines j
   assert.equal(row.cells.length, 6);
   const others = (t: string) => t.split("\n").filter((l) => !l.includes("Commit author"));
   assert.deepEqual(others(r.text), others(BOARD));
+});
+
+test("asCell escapes every bare pipe once and leaves escaped ones alone", () => {
+  assert.equal(asCell("a|b|c"), "a\\|b\\|c");
+  assert.equal(asCell("a\\|b"), "a\\|b");
+  assert.equal(asCell("|start and end|"), "\\|start and end\\|");
+  assert.equal(asCell("two\nlines"), "two lines");
 });
 
 test("answering an already answered row is refused as changed", () => {

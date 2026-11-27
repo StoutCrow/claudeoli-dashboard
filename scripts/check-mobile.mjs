@@ -12,6 +12,8 @@ const RULES = [
 	// Allowed only inside registerInterval(…), which clears it when the view or plugin unloads.
 	[/^(?!.*registerInterval\().*(?<![.\w])(?:window\.)?setInterval\(/, "setInterval (use registerInterval)"],
 	[/\bdetachLeavesOfType\(/, "detaching leaves (never in onunload)"],
+	[/\(\?<[!=]/, "regex lookbehind (not supported on iOS before 16.4)"],
+	[/(?<![.\w])document\.(?!createElement)/, "document (use activeDocument, for popout windows)"],
 ];
 // One-shot timers are allowed only where they are tracked and cleared.
 const TIMER_OK = new Set(["src/live/loop.ts", "src/ui/common.ts"]);

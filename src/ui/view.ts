@@ -114,7 +114,7 @@ export class DashboardView extends ItemView {
 		// Ages are repainted once a minute while the dashboard is open; nothing runs while it's closed.
 		this.registerInterval(window.setInterval(() => this.render(), 60_000));
 		// On a phone in the background, the long-poll waits until the app is back.
-		this.registerDomEvent(document, "visibilitychange", () => this.loop?.pause(document.visibilityState === "hidden"));
+		this.registerDomEvent(activeDocument, "visibilitychange", () => this.loop?.pause(activeDocument.visibilityState === "hidden"));
 		this.restartLive();
 	}
 

@@ -15,8 +15,11 @@ function find(t: Table | undefined, shown: Row): Row | "missing" | "changed" {
 const splitLines = (text: string) => ({ eol: text.includes("\r\n") ? "\r\n" : "\n", lines: text.split(/\r?\n/) });
 const rowLine = (cells: string[]) => `| ${cells.join(" | ")} |`;
 
-/** A table cell from free text: one line, pipes escaped. */
-export const asCell = (s: string) => s.replace(/\r?\n+/g, " ").replace(/(?<!\\)\|/g, "\\|").trim();
+/**
+ * A table cell from free text: one line, pipes escaped. No regex lookbehind (iOS before 16.4 can't parse one):
+ * an already escaped pipe matches first and is kept as it is.
+ */
+export const asCell = (s: string) => s.replace(/\r?\n+/g, " ").replace(/\\\||\|/g, (m) => (m === "|" ? "\\|" : m)).trim();
 
 /** Moves a Queue row to the top of Done (Date, PC, Task, Owner), in one edit. */
 export function setupToDone(text: string, shown: Row, date: string): EditResult {

@@ -59,6 +59,7 @@ DocumentFragment.prototype.createDiv = function (o) {
 	return e;
 };
 (window as unknown as Record<string, unknown>).createEl = make;
+(window as unknown as Record<string, unknown>).activeDocument = document;
 (window as unknown as Record<string, unknown>).createFragment = (cb?: (f: DocumentFragment) => void) => {
 	const f = document.createDocumentFragment();
 	cb?.(f);
